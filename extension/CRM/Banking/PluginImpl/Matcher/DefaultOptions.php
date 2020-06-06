@@ -140,10 +140,10 @@ class CRM_Banking_PluginImpl_Matcher_DefaultOptions extends CRM_Banking_PluginMo
             
             $amount_to_pay = (float) $contribution['total_amount'];
             if ($contribution['contribution_status_id'] == $partiallypaid_status) {
-              $payments = civicrm_api('FinancialItem', 'get', array('version' => 3, 'entity_id' => $cid));
+              $payments = civicrm_api('Payment', 'get', array('version' => 3, 'contribution_id' => $cid));
               if ($payments['count'] > 0) {
                 foreach ($payments['values'] as $payment) {
-                  $amount_to_pay -= (float) $payment['amount'];
+                  $amount_to_pay -= (float) $payment['total_amount'];
                 }
               }
             }
