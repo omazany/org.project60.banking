@@ -420,6 +420,25 @@ class CRM_Banking_PluginImpl_Matcher_ExistingContribution extends CRM_Banking_Pl
       }
     }
     
+    // Checking if Payment was recorded
+    $result = civicrm_api('Payment', 'get', [
+      'version' => 3,
+      'sequential' => 1,
+      'trxn_id' => $query['trxn_id']
+    ]);
+    if (isset($result['count']) && $result['count'] == 0) {
+      $result = civicrm_api('Payment', 'create', [
+        'version' => 3,
+        'contribution_id' => $contribution_id,
+        'total_amount' => abs($btx->amount),
+        'trxn_id' => $query['trxn_id'],
+        'trxn_date' => date('YmdHis', strtotime($btx->booking_date))
+      ]);
+      if (isset($result['is_error']) && $result['is_error']) {
+        CRM_Core_Session::setStatus(E::ts("Couldn't record payment for the contribution.") . "<br/>" . $result['error_message'], E::ts('Error'), 'error');
+      }
+    }
+    
     $result = civicrm_api('Contribution', 'create', $query);
     if (isset($result['is_error']) && $result['is_error']) {
       CRM_Core_Session::setStatus(E::ts("Couldn't modify contribution.") . "<br/>" . $result['error_message'], E::ts('Error'), 'error');
@@ -430,25 +449,6 @@ class CRM_Banking_PluginImpl_Matcher_ExistingContribution extends CRM_Banking_Pl
         $this->storeAccountWithContact($btx, $result['values'][$contribution_id]['contact_id']);
       } elseif (!empty($result['values'][0]['contact_id'])) {
         $this->storeAccountWithContact($btx, $result['values'][0]['contact_id']);
-      }
-
-      // Checking if Payment was recorded
-      $result = civicrm_api('Payment', 'get', [
-        'version' => 3,
-        'sequential' => 1,
-        'trxn_id' => $query['trxn_id']
-      ]);
-      if (isset($result['count']) && $result['count'] == 0) {
-        $result = civicrm_api('Payment', 'create', [
-          'version' => 3,
-          'contribution_id' => $contribution_id,
-          'total_amount' => abs($btx->amount),
-          'trxn_id' => $query['trxn_id'],
-          'trxn_date' => date('YmdHis', strtotime($btx->booking_date))
-        ]);
-        if (isset($result['is_error']) && $result['is_error']) {
-          CRM_Core_Session::setStatus(E::ts("Couldn't record payment for the contribution.") . "<br/>" . $result['error_message'], E::ts('Error'), 'error');
-        }
       }
     }
 
