@@ -119,6 +119,7 @@ class CRM_Banking_PluginImpl_Matcher_DefaultOptions extends CRM_Banking_PluginMo
       if ($cids) {
         $completed_status = banking_helper_optionvalue_by_groupname_and_name('contribution_status', 'Completed');
         $cancelled_status = banking_helper_optionvalue_by_groupname_and_name('contribution_status', 'Cancelled');
+        $partiallypaid_status = banking_helper_optionvalue_by_groupname_and_name('contribution_status','Partially paid');
 
         foreach ($cids as $cid) {
           if ($cid) {
@@ -136,12 +137,25 @@ class CRM_Banking_PluginImpl_Matcher_DefaultOptions extends CRM_Banking_PluginMo
             $query = array('version' => 3, 'id' => $cid);
             $query['is_test'] = 0;
             $query = array_merge($query, $this->getPropagationSet($btx, $suggestion, 'contribution'));   // add propagated values
-
+            
+            $amount_to_pay = (float) $contribution['total_amount'];
+            if ($query['contribution_status_id'] == 'Partially paid') {
+              $payments = civicrm_api('FinancialItem', 'get', array('version' => 3, 'entity_id' => $cid));
+              if ($payments['count'] > 0) {
+                foreach ($payments['values'] as $payment) {
+                  $amount_to_pay -= (float) $payment['amount'];
+                }
+              }
+            }
+            
             // set status to completed, unless it's a negative amount...
             if ($btx->amount < 0) {
               // ...in this case, we want to cancel this
               $query['contribution_status_id'] = $cancelled_status;
               $query['cancel_date'] = date('YmdHis', strtotime($btx->booking_date));
+            } elseif (abs($btx->amount) < $amount_to_pay) {
+              $query['contribution_status_id'] = $partiallypaid_status;
+              $query['receive_date'] = date('YmdHis', strtotime($btx->booking_date));
             } else {
               // ...otherwise, we close it
               $query['contribution_status_id'] = $completed_status;
