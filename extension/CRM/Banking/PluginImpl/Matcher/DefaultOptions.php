@@ -173,7 +173,7 @@ class CRM_Banking_PluginImpl_Matcher_DefaultOptions extends CRM_Banking_PluginMo
               $result = civicrm_api('Payment', 'get', [
                 'version' => 3,
                 'sequential' => 1,
-                'trxn_id' => $btx->trxn_id
+                'trxn_id' => $query['trxn_id']
               ]);
               if (isset($result['count']) && $result['count'] == 0) {
                 $result = civicrm_api('Payment', 'create', [
