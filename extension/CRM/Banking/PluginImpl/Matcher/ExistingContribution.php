@@ -393,10 +393,11 @@ class CRM_Banking_PluginImpl_Matcher_ExistingContribution extends CRM_Banking_Pl
       return false;
     }
 
+    $partiallypaid_status = banking_helper_optionvalue_by_groupname_and_name('contribution_status','Partially paid');
     // depending on mode...
     if ($this->_plugin_config->mode != "cancellation") {
       $amount_to_pay = (float) $contribution['total_amount'];
-      $partiallypaid_status = banking_helper_optionvalue_by_groupname_and_name('contribution_status','Partially paid');
+      
       if ($contribution['contribution_status_id'] == $partiallypaid_status) {
         $payments = civicrm_api('FinancialItem', 'get', array('version' => 3, 'entity_id' => $contribution_id));
         if ($payments['count'] > 0) {
@@ -429,6 +430,17 @@ class CRM_Banking_PluginImpl_Matcher_ExistingContribution extends CRM_Banking_Pl
         $this->storeAccountWithContact($btx, $result['values'][$contribution_id]['contact_id']);
       } elseif (!empty($result['values'][0]['contact_id'])) {
         $this->storeAccountWithContact($btx, $result['values'][0]['contact_id']);
+      }
+      if ($contribution['contribution_status_id'] == $partiallypaid_status) {
+        $result = civicrm_api('Payment', 'create', [
+          'version' => 3,
+          'contribution_id' => $contribution_id,
+          'total_amount' => abs($btx->amount),          
+          'trxn_id' => $btx->trxn_id
+        ]);
+        if (isset($result['is_error']) && $result['is_error']) {
+          CRM_Core_Session::setStatus(E::ts("Couldn't record payment.") . "<br/>" . $result['error_message'], E::ts('Error'), 'error');          
+        }
       }
     }
 
