@@ -431,15 +431,23 @@ class CRM_Banking_PluginImpl_Matcher_ExistingContribution extends CRM_Banking_Pl
       } elseif (!empty($result['values'][0]['contact_id'])) {
         $this->storeAccountWithContact($btx, $result['values'][0]['contact_id']);
       }
-      if ($contribution['contribution_status_id'] == $partiallypaid_status) {
+
+      // Checking if Payment was recorded
+      $result = civicrm_api('Payment', 'get', [
+        'version' => 3,
+        'sequential' => 1,
+        'trxn_id' => $btx->trxn_id
+      ]);
+      if (isset($result['count']) && $result['count'] == 0) {
         $result = civicrm_api('Payment', 'create', [
           'version' => 3,
           'contribution_id' => $contribution_id,
-          'total_amount' => abs($btx->amount),          
-          'trxn_id' => $btx->trxn_id
+          'total_amount' => abs($btx->amount),
+          'trxn_id' => $btx->trxn_id,
+          'trxn_date' => date('YmdHis', strtotime($btx->booking_date))
         ]);
         if (isset($result['is_error']) && $result['is_error']) {
-          CRM_Core_Session::setStatus(E::ts("Couldn't record payment.") . "<br/>" . $result['error_message'], E::ts('Error'), 'error');          
+          CRM_Core_Session::setStatus(E::ts("Couldn't record payment for the contribution.") . "<br/>" . $result['error_message'], E::ts('Error'), 'error');
         }
       }
     }

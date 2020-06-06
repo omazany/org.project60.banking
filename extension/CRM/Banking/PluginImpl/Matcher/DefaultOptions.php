@@ -167,17 +167,26 @@ class CRM_Banking_PluginImpl_Matcher_DefaultOptions extends CRM_Banking_PluginMo
               CRM_Core_Session::setStatus(sprintf(E::ts("Couldn't modify contribution #%s"), $cid), E::ts('Error'), 'error');
               return NULL;
             } else {
-              if ($contribution['contribution_status_id'] == $partiallypaid_status) {
+              $contribution_count += 1;
+
+              // Checking if Payment was recorded
+              $result = civicrm_api('Payment', 'get', [
+                'version' => 3,
+                'sequential' => 1,
+                'trxn_id' => $btx->trxn_id
+              ]);
+              if (isset($result['count']) && $result['count'] == 0) {
                 $result = civicrm_api('Payment', 'create', [
+                  'version' => 3,
                   'contribution_id' => $cid,
-                  'total_amount' => abs($btx->amount),          
-                  'trxn_id' => $btx->trxn_id
+                  'total_amount' => abs($btx->amount),
+                  'trxn_id' => $btx->trxn_id,
+                  'trxn_date' => date('YmdHis', strtotime($btx->booking_date))
                 ]);
                 if (isset($result['is_error']) && $result['is_error']) {
-                  CRM_Core_Session::setStatus(E::ts("Couldn't record payment.") . "<br/>" . $result['error_message'], E::ts('Error'), 'error');          
+                  CRM_Core_Session::setStatus(E::ts("Couldn't record payment for the contribution.") . "<br/>" . $result['error_message'], E::ts('Error'), 'error');
                 }
-              }
-              $contribution_count += 1;
+              }              
             }
           }
         }
