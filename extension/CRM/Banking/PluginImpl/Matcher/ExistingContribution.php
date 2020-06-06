@@ -396,7 +396,8 @@ class CRM_Banking_PluginImpl_Matcher_ExistingContribution extends CRM_Banking_Pl
     // depending on mode...
     if ($this->_plugin_config->mode != "cancellation") {
       $amount_to_pay = (float) $contribution['total_amount'];
-      if ($query['contribution_status_id'] == 'Partially paid') {
+      $partiallypaid_status = banking_helper_optionvalue_by_groupname_and_name('contribution_status','Partially paid');
+      if ($contribution['contribution_status_id'] == $partiallypaid_status) {
         $payments = civicrm_api('FinancialItem', 'get', array('version' => 3, 'entity_id' => $contribution_id));
         if ($payments['count'] > 0) {
           foreach ($payments['values'] as $payment) {
