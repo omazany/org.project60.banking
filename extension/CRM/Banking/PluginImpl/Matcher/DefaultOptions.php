@@ -167,6 +167,16 @@ class CRM_Banking_PluginImpl_Matcher_DefaultOptions extends CRM_Banking_PluginMo
               CRM_Core_Session::setStatus(sprintf(E::ts("Couldn't modify contribution #%s"), $cid), E::ts('Error'), 'error');
               return NULL;
             } else {
+              if ($contribution['contribution_status_id'] == $partiallypaid_status) {
+                $result = civicrm_api('Payment', 'create', [
+                  'contribution_id' => $cid,
+                  'total_amount' => abs($btx->amount),          
+                  'trxn_id' => $btx->trxn_id
+                ]);
+                if (isset($result['is_error']) && $result['is_error']) {
+                  CRM_Core_Session::setStatus(E::ts("Couldn't record payment.") . "<br/>" . $result['error_message'], E::ts('Error'), 'error');          
+                }
+              }
               $contribution_count += 1;
             }
           }
