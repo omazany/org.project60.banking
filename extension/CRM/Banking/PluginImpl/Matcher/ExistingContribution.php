@@ -443,7 +443,7 @@ class CRM_Banking_PluginImpl_Matcher_ExistingContribution extends CRM_Banking_Pl
           'version' => 3,
           'contribution_id' => $contribution_id,
           'total_amount' => abs($btx->amount),
-          'trxn_id' => $btx->trxn_id,
+          'trxn_id' => $query['trxn_id'],
           'trxn_date' => date('YmdHis', strtotime($btx->booking_date))
         ]);
         if (isset($result['is_error']) && $result['is_error']) {
